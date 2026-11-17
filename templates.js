@@ -3,7 +3,13 @@ const NICHE_TEMPLATES = {
   test_vanyuchki: {
   badge: 'ДОХЛЫЕ ВАНЮЧЬКИ',
   defaultFocus: 'leadgen',
-  understanding: 'Тестовая ниша «ДОХЛЫЕ ВАН
+  understanding: 'Тестовая ниша «ДОХЛЫЕ ВАНЮЧЬКИ» для проверки динамического обновления КП через GitHub Pages.',
+    growthPoints: [
+      { title: 'Тестовая задача 1', desc: 'Проверка автоматической подгрузки ниши из templates.js.' },
+      { title: 'Тестовая задача 2', desc: 'Проверка корректного отображения блоков КП по прямой ссылке.' },
+      { title: 'Тестовая задача 3', desc: 'Проверка обновления сайта на GitHub Pages после коммита.' }
+      ]
+      },
   logistics: {
     badge: 'Грузоперевозки и логистика',
     defaultFocus: 'crm_ai',
