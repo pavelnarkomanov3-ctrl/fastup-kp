@@ -1,5 +1,9 @@
 // БАЗА ДАННЫХ НИШ (специфика, точки роста и формулировки строго без слова «бизнес» и без шаблонных «заявок»)
 const NICHE_TEMPLATES = {
+  test_vanyuchki: {
+  badge: 'ДОХЛЫЕ ВАНЮЧЬКИ',
+  defaultFocus: 'leadgen',
+  understanding: 'Тестовая ниша «ДОХЛЫЕ ВАН
   logistics: {
     badge: 'Грузоперевозки и логистика',
     defaultFocus: 'crm_ai',
