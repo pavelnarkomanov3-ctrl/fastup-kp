@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastUp — Динамическое коммерческое предложение и конструктор</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .brand-gradient {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1d4ed8 100%);
+    }
+    .card-shadow {
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: #ffffff;
+      }
+      .print-break-inside {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ РЕЖИМОВ (СКРЫВАЕТСЯ В РЕЖИМЕ КЛИЕНТА ПРИ ?view=client ИЛИ ПРИ ПЕЧАТИ) -->
+  <div id="topAdminBar" class="no-print sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 font-bold text-xs tracking-wider">FU</span>
+        <div>
+          <span class="font-semibold text-sm">FastUp КП-Движок</span>
+          <span class="hidden md:inline-block text-xs text-slate-400 ml-2">Динамический шаблон для GitHub Pages</span>
+        </div>
+      </div>
+
+      <!-- Переключатель вкладок -->
+      <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <button id="tabBtnBuilder" onclick="switchMode('builder')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition bg-blue-600 text-white">
+          Конструктор + Превью
+        </button>
+        <button id="tabBtnClient" onclick="switchMode('client')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white">
+          Вид глазами клиента
+        </button>
+        <button id="tabBtnGithub" onclick="switchMode('github')" class="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white">
+          Как залить на GitHub
+        </button>
+      </div>
+
+      <!-- Быстрые действия -->
+      <div class="flex items-center gap-2">
+        <button onclick="copyClientLink()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <span>Скопировать ссылку КП</span>
+        </button>
+        <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition">
+          PDF / Печать
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- УВЕДОМЛЕНИЕ TOAST -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-200">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-3 text-sm">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+      <span id="toastText">Скопировано в буфер обмена</span>
+    </div>
+  </div>
+
+  <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- СЕКЦИЯ ИНСТРУКЦИИ GITHUB PAGES -->
+    <div id="githubGuideSection" class="hidden mb-8 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 card-shadow">
+      <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Архитектура решения</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mt-2">Как работает динамическое КП через GitHub Pages</h2>
+          <p class="text-sm text-slate-600 mt-1">Один файл <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">index.html</code> в репозитории заменяет десятки отдельных презентаций и документов.</p>
+        </div>
+        <button onclick="switchMode('builder')" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          Вернуться к конструктору
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="text-xs font-bold text-blue-600 uppercase mb-1">Шаг 1. Публикация</div>
+          <div class="font-semibold text-slate-900 mb-1">Создай репозиторий на GitHub</div>
+          <p class="text-xs text-slate-600 leading-relaxed">Назови его, например, <code class="bg-white px-1 py-0.5 rounded border">fastup-kp</code>, загрузи этот файл под именем <code class="bg-white px-1 py-0.5 rounded border">index.html</code> и включи <strong>Settings → Pages → Deploy from branch (main)</strong>.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="text-xs font-bold text-blue-600 uppercase mb-1">Шаг 2. Сборка за 20 секунд</div>
+          <div class="font-semibold text-slate-900 mb-1">Выбери нишу и сценарий после звонка</div>
+          <p class="text-xs text-slate-600 leading-relaxed">Открой свою ссылку, выбери нишу (грузоперевозки, производство, маркетплейсы и т.д.), впиши название компании, имя ЛПР и при необходимости ориентиры по стоимости и рекламному бюджету.</p>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="text-xs font-bold text-blue-600 uppercase mb-1">Шаг 3. Отправка клиенту</div>
+          <div class="font-semibold text-slate-900 mb-1">Скрипт считывает URL-параметры</div>
+          <p class="text-xs text-slate-600 leading-relaxed">Кнопка «Скопировать ссылку КП» формирует ссылку с параметром <code class="bg-white px-1 py-0.5 rounded border">?view=client&amp;niche=...</code>. У клиента открывается только чистое персональное КП без панели конструктора.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 text-slate-100 rounded-xl p-4 sm:p-5 text-xs sm:text-sm overflow-x-auto">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-slate-400 font-medium">Пример динамической ссылки, которую получает клиент:</span>
+          <span class="text-emerald-400 text-xs">Скрипт сам меняет все 9 блоков КП</span>
+        </div>
+        <code id="sampleUrlPreview" class="block text-blue-300 break-all font-mono text-xs leading-relaxed">
+          https://username.github.io/fastup-kp/?view=client&amp;niche=logistics&amp;focus=crm_ai&amp;company=ЧП%20«МК%20ЛогТерм»&amp;contact=Екатерина
+        </code>
+      </div>
+    </div>
+
+    <!-- РАБОЧАЯ СЕТКА: СЛЕВА КОНСТРУКТОР, СПРАВА ПРЕВЬЮ КП -->
+    <div id="mainWorkspaceGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- ПАНЕЛЬ КОНСТРУКТОРА (СЛЕВА) -->
+      <aside id="builderSidebar" class="no-print lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 card-shadow space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3.5">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Настройка КП под ситуацию</h2>
+            <p class="text-xs text-slate-500">Выбери готовый кейс из базы или настрой параметры вручную</p>
+          </div>
+          <button onclick="resetToDefault()" class="text-xs text-slate-500 hover:text-slate-800 underline">Сбросить</button>
+        </div>
+
+        <!-- Быстрые пресеты по реальным лидам Павла -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Быстрая проверка на твоих компаниях:</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="loadLeadPreset('logterm')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              ЧП «МК ЛогТерм» (CRM/Таблицы)
+            </button>
+            <button onclick="loadLeadPreset('slonim')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              СЛОНИМПРЯЖА (Трафик Ozon)
+            </button>
+            <button onclick="loadLeadPreset('vilana')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              ЧП «Вилана Про» (Локальная точка)
+            </button>
+            <button onclick="loadLeadPreset('agrokrot')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              АгроКрут (Бронирования)
+            </button>
+            <button onclick="loadLeadPreset('fizmatika')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              ООО «Физматика» (Ученики)
+            </button>
+            <button onclick="loadLeadPreset('furtex')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 transition border border-slate-200">
+              Фуртекс Плюс (B2B Китай)
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Выбор ниши и сценария -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+          <div>
+            <label for="nicheSelect" class="block text-xs font-semibold text-slate-700 mb-1">1. Ниша компании</label>
+            <select id="nicheSelect" onchange="handleNicheOrFocusChange()" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none">
+              <option value="logistics">Грузоперевозки и логистика</option>
+              <option value="manufacturing">Производство и оптовые поставки</option>
+              <option value="marketplace">Селлеры маркетплейсов (Ozon / WB)</option>
+              <option value="local_retail">Локальная розница и точки продаж</option>
+              <option value="agro_tourism">Агроусадьбы и загородный отдых</option>
+              <option value="edtech">Онлайн-школы и обучение</option>
+              <option value="realestate">Аренда коммерческой недвижимости</option>
+              <option value="b2b_services">Услуги для компаний (фулфилмент / B2B)</option>
+              <option value="china_export">Выход на рынок Китая (B2B)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="focusSelect" class="block text-xs font-semibold text-slate-700 mb-1">2. Фокус решения FastUp</label>
+            <select id="focusSelect" onchange="handleNicheOrFocusChange()" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none">
+              <option value="leadgen">Привлечение новых клиентов (Сайт + Реклама)</option>
+              <option value="site_launch">Разработка сайта / посадочной страницы</option>
+              <option value="ads_traffic">Запуск контекстной и таргетированной рекламы</option>
+              <option value="crm_ai">Индивидуальная CRM, автоматизация и ИИ</option>
+              <option value="mp_external">Внешний рекламный трафик на Ozon / WB</option>
+              <option value="seo_growth">Поисковое продвижение (SEO) и каталоги</option>
+              <option value="china_b2b">Поиск партнёров в Китае (Baidu / WeChat)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Данные клиента -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label for="companyInput" class="block text-xs font-semibold text-slate-700 mb-1">Название компании</label>
+            <input id="companyInput" type="text" oninput="syncFormToState()" placeholder="Например: ЧП «МК ЛогТерм»" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label for="contactInput" class="block text-xs font-semibold text-slate-700 mb-1">Имя контакта / ЛПР</label>
+            <input id="contactInput" type="text" oninput="syncFormToState()" placeholder="Например: Екатерина" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label for="cityInput" class="block text-xs font-semibold text-slate-700 mb-1">Город / Регион</label>
+            <input id="cityInput" type="text" oninput="syncFormToState()" placeholder="Например: Минск / РБ" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none" />
+          </div>
+          <div>
+            <label for="unpInput" class="block text-xs font-semibold text-slate-700 mb-1">УНП или сайт (если есть)</label>
+            <input id="unpInput" type="text" oninput="syncFormToState()" placeholder="УНП 193913964 / без сайта" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- 3. Индивидуальный контекст из звонка -->
+        <div>
+          <label for="customContextInput" class="block text-xs font-semibold text-slate-700 mb-1">Деталь из разговора (добавляется в блок «Понимание задачи»)</label>
+          <textarea id="customContextInput" rows="2" oninput="syncFormToState()" placeholder="Например: Учёт ведётся в таблицах, важно автоматизировать распределение рейсов без перехода на 1С." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"></textarea>
+        </div>
+
+        <!-- 4. Стоимость и рекламный бюджет (отдельно!) -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Финансовый блок (раздельный учёт)</span>
+            <span class="text-[11px] text-slate-500">Без необоснованных обещаний</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="serviceCostInput" class="block text-xs font-medium text-slate-600 mb-1">Стоимость работ FastUp</label>
+              <input id="serviceCostInput" type="text" oninput="syncFormToState()" placeholder="Предварительный расчёт после брифа" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs sm:text-sm focus:border-blue-600 focus:outline-none" />
+            </div>
+            <div>
+              <label for="adBudgetInput" class="block text-xs font-medium text-slate-600 mb-1">Рекламный бюджет (отдельно)</label>
+              <input id="adBudgetInput" type="text" oninput="syncFormToState()" placeholder="Определяется под регион и спрос" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs sm:text-sm focus:border-blue-600 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <label for="timelineInput" class="block text-xs font-medium text-slate-600 mb-1">Ориентир по срокам запуска</label>
+            <input id="timelineInput" type="text" oninput="syncFormToState()" placeholder="От 10 до 20 рабочих дней по этапам" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs sm:text-sm focus:border-blue-600 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- 5. Сообщение для отправки в WhatsApp / Telegram / Email -->
+        <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-blue-900">Готовое сопроводительное сообщение</span>
+            <button onclick="copyCompanionMessage()" class="text-xs font-semibold text-blue-700 hover:text-blue-900 underline">Скопировать текст</button>
+          </div>
+          <p id="companionMsgPreview" class="text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-blue-100 leading-relaxed whitespace-pre-line"></p>
+        </div>
+      </aside>
+
+      <!-- ПРЕВЬЮ САМОГО КОММЕРЧЕСКОГО ПРЕДЛОЖЕНИЯ (СПРАВА ИЛИ НА ВСЮ ШИРИНУ В РЕЖИМЕ КЛИЕНТА) -->
+      <main id="proposalContainer" class="lg:col-span-7">
+        <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-shadow">
+
+          <!-- 1. ШАПКА КП И КРАТКОЕ ВСТУПЛЕНИЕ -->
+          <header class="brand-gradient text-white p-6 sm:p-9">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/15">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center font-extrabold text-lg tracking-tight">
+                  FU
+                </div>
+                <div>
+                  <div class="font-bold text-base tracking-wide">FastUp Digital Agency</div>
+                  <div class="text-xs text-blue-200">Развитие продаж, интернет-продвижение и автоматизация</div>
+                </div>
+              </div>
+              <div class="text-left sm:text-right">
+                <div id="kpBadgeNiche" class="inline-block text-xs font-semibold bg-blue-500/30 border border-blue-300/30 px-3 py-1 rounded-full text-blue-100">
+                  Персональное предложение
+                </div>
+                <div id="kpMetaLine" class="text-xs text-slate-300 mt-1">Подготовлено: Павел, FastUp</div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <div id="kpGreeting" class="text-blue-200 text-sm font-medium mb-1.5">Уважаемые коллеги!</div>
+              <h1 id="kpMainTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug">
+                Предложение по привлечению новых клиентов и развитию интернет-присутствия
+              </h1>
+              <p id="kpIntroText" class="mt-3 text-sm sm:text-base text-slate-200 leading-relaxed">
+                Мы изучили направление вашей компании и подготовили практический план работ, который поможет системно привлекать новых заказчиков и выстроить прозрачный процесс работы с обращениями.
+              </p>
+            </div>
+          </header>
+
+          <!-- СОДЕРЖАНИЕ КП ПО 9 ОБЯЗАТЕЛЬНЫМ ПУНКТАМ -->
+          <div class="p-6 sm:p-9 space-y-8">
+
+            <!-- 2. ПОНИМАНИЕ ДЕЯТЕЛЬНОСТИ КОМПАНИИ -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">1</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Понимание специфики вашей деятельности</h2>
+              </div>
+              <div class="p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2.5">
+                <p id="kpUnderstandingText" class="text-sm text-slate-700 leading-relaxed"></p>
+                <div id="kpCustomNoteBox" class="hidden pt-2 border-t border-slate-200/80">
+                  <div class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-0.5">Зафиксированный акцент из нашего диалога:</div>
+                  <p id="kpCustomNoteText" class="text-sm text-slate-800 font-medium"></p>
+                </div>
+              </div>
+            </section>
+
+            <!-- 3. ВОЗМОЖНЫЕ ПРОБЛЕМЫ И ТОЧКИ РОСТА -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">2</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Точки роста и задачи, которые важно решить</h2>
+              </div>
+              <div id="kpGrowthPointsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <!-- Заполняется скриптом -->
+              </div>
+            </section>
+
+            <!-- 4. ПРЕДЛАГАЕМОЕ РЕШЕНИЕ FASTUP -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">3</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Предлагаемое решение от команды FastUp</h2>
+              </div>
+              <div class="p-5 rounded-xl bg-blue-50/60 border border-blue-200/80">
+                <h3 id="kpSolutionHeadline" class="font-bold text-slate-900 text-base mb-1.5"></h3>
+                <p id="kpSolutionDescription" class="text-sm text-slate-700 leading-relaxed"></p>
+              </div>
+            </section>
+
+            <!-- 5. КОНКРЕТНЫЕ ИНСТРУМЕНТЫ И ЭТАПЫ РЕАЛИЗАЦИИ -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">4</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Инструменты и этапы реализации</h2>
+              </div>
+              <div id="kpStagesList" class="space-y-3">
+                <!-- Заполняется скриптом -->
+              </div>
+            </section>
+
+            <!-- 6. ОЖИДАЕМЫЙ РЕЗУЛЬТАТ БЕЗ НЕОБОСНОВАННЫХ ГАРАНТИЙ -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">5</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Практический результат для компании</h2>
+              </div>
+              <div class="p-4 sm:p-5 rounded-xl bg-emerald-50/60 border border-emerald-200/80">
+                <ul id="kpExpectedResultsList" class="space-y-2 text-sm text-slate-800">
+                  <!-- Заполняется скриптом -->
+                </ul>
+                <p class="mt-3 pt-2.5 border-t border-emerald-200/60 text-xs text-slate-500">
+                  * Мы оцениваем эффективность в реальных показателях вашей деятельности (обращения целевых клиентов, прозрачность учёта, стоимость привлечения) и не даём искусственных обещаний окупаемости без предварительного расчёта экономики и спроса.
+                </p>
+              </div>
+            </section>
+
+            <!-- 7 И 8. СТОИМОСТЬ УСЛУГ И ОТДЕЛЬНО РЕКЛАМНЫЙ БЮДЖЕТ -->
+            <section class="print-break-inside">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">6</span>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900">Условия реализации и структура затрат</h2>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Стоимость услуг FastUp -->
+                <div class="p-5 rounded-xl border-2 border-slate-900 bg-white flex flex-col justify-between">
+                  <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded">Работы агентства FastUp</span>
+                    <div class="mt-3 text-xs text-slate-500">Стоимость разработки и настройки:</div>
+                    <div id="kpServiceCostValue" class="text-lg sm:text-xl font-extrabold text-slate-900 mt-0.5"></div>
+                    <p id="kpServiceCostNote" class="text-xs text-slate-600 mt-2 leading-relaxed"></p>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>Срок реализации этапа:</span>
+                    <strong id="kpTimelineValue" class="text-slate-800"></strong>
+                  </div>
+                </div>
+
+                <!-- Отдельно рекламный бюджет -->
+                <div class="p-5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+                  <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-200/80 px-2.5 py-1 rounded">Рекламный бюджет / Внешние сервисы</span>
+                    <div class="mt-3 text-xs text-slate-500">Пополнение рекламных площадок (отдельно от услуг):</div>
+                    <div id="kpAdBudgetValue" class="text-lg sm:text-xl font-bold text-slate-900 mt-0.5"></div>
+                    <p id="kpAdBudgetNote" class="text-xs text-slate-600 mt-2 leading-relaxed"></p>
+                  </div>
+                  <div class="mt-4 pt-3 border-t border-slate-200/80 text-xs text-slate-500">
+                    Оплачивается напрямую рекламным системам или по прозрачному медиаплану.
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 9. СЛЕДУЮЩИЙ ШАГ — КОНСУЛЬТАЦИЯ ИЛИ ОБСУЖДЕНИЕ ПРОЕКТА -->
+            <section class="print-break-inside pt-2">
+              <div class="p-6 rounded-2xl bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                <div class="space-y-1.5">
+                  <div class="text-xs font-semibold uppercase tracking-wider text-blue-400">Следующий шаг</div>
+                  <h3 class="text-lg font-bold">Короткая рабочая встреча со специалистом FastUp (15–20 минут)</h3>
+                  <p id="kpNextStepText" class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
+                    Разберём вашу задачу на цифрах, покажем примеры реализации в близких сферах и зафиксируем точную смету без обязательств с вашей стороны.
+                  </p>
+                </div>
+                <div class="w-full sm:w-auto shrink-0 bg-white/10 rounded-xl p-4 border border-white/15 text-xs space-y-1">
+                  <div class="font-bold text-sm text-white">Павел | FastUp</div>
+                  <div class="text-slate-300">Отдел развития и работы с клиентами</div>
+                  <div class="pt-1 text-blue-300 font-medium">Свяжитесь со мной в удобном мессенджере или ответным сообщением</div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </article>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // БАЗА ДАННЫХ НИШ (специфика, точки роста и формулировки строго без слова «бизнес» и без шаблонных «заявок»)
+    const NICHE_TEMPLATES = {
+      logistics: {
+        badge: 'Грузоперевозки и логистика',
+        defaultFocus: 'crm_ai',
+        understanding: 'В сфере грузоперевозок ключевую роль играет стабильная загрузка транспорта прямыми заказчиками, быстрый расчёт ставок и прозрачный контроль рейсов, документов и водителей без потери времени на ручной перенос данных.',
+        growthPoints: [
+          {
+            title: 'Зависимость от посредников',
+            desc: 'Высокая доля рейсов через диспетчеров и биржи снижает маржинальность по сравнению с работой напрямую с грузовладельцами.'
+          },
+          {
+            title: 'Ручной учёт в таблицах',
+            desc: 'Ведение рейсов, оплат и статусов в разрозненных таблицах усложняет контроль при росте количества машин и клиентов.'
+          },
+          {
+            title: 'Скорость обработки запросов',
+            desc: 'Прямые заказчики выбирают перевозчика, который быстрее даёт расчёт стоимости и подтверждает подачу транспорта.'
+          }
+        ]
+      },
+      manufacturing: {
+        badge: 'Производство и оптовые поставки',
+        defaultFocus: 'leadgen',
+        understanding: 'Для производственной и оптовой компании приоритетом является выход на крупных постоянных заказчиков, дилеров и снабженцев, а также наглядная демонстрация ассортимента, производственных мощностей и условий отгрузки.',
+        growthPoints: [
+          {
+            title: 'Поиск новых оптовых покупателей',
+            desc: 'Снабженцы и закупщики ищут поставщиков в поиске; отсутствие удобного каталога уводит их к посредникам.'
+          },
+          {
+            title: 'Сложность презентации продукции',
+            desc: 'Без структурированной страницы с характеристиками и условиями партий менеджеры тратят много времени на базовые консультации.'
+          },
+          {
+            title: 'Повторные продажи постоянным партнёрам',
+            desc: 'Необходима системная фиксация истории контактов и своевременное напоминание о пополнении складских запасов.'
+          }
+        ]
+      },
+      marketplace: {
+        badge: 'Производство и продажи на маркетплейсах',
+        defaultFocus: 'mp_external',
+        understanding: 'При наличии собственного производства и действующего магазина на маркетплейсе (Ozon, Wildberries) внутренняя реклама площадки часто перегрета, поэтому точкой роста становится управляемый внешний поток покупателей и развитие собственной витрины.',
+        growthPoints: [
+          {
+            title: 'Высокая цена внутренней рекламы',
+            desc: 'Ставки внутри маркетплейса постоянно растут, сжимая чистую прибыль с каждой проданной единицы товара.'
+          },
+          {
+            title: 'Недостаток внешнего трафика',
+            desc: 'Покупатели, которые ищут продукцию в поисковых системах и соцсетях, не попадают напрямую в карточки вашего магазина.'
+          },
+          {
+            title: 'Отсутствие прямой клиентской базы',
+            desc: 'Маркетплейс не передаёт контакты покупателей для прямых оптовых и повторных мелкооптовых заказов.'
+          }
+        ]
+      },
+      local_retail: {
+        badge: 'Локальная розница и торговые точки',
+        defaultFocus: 'ads_traffic',
+        understanding: 'Для локальной торговой точки или павильона критически важно считать экономику продвижения: реклама должна работать строго на целевой радиус и привлекать постоянных покупателей с понятной частотой повторных покупок.',
+        growthPoints: [
+          {
+            title: 'Оценка рентабельности рекламы для одной точки',
+            desc: 'Широкая реклама на весь город нецелесообразна — нужен точечный расчёт стоимости привлечения покупателя в конкретной локации.'
+          },
+          {
+            title: 'Заметность на картах и в поиске рядом',
+            desc: 'Покупатели ищут свежую продукцию и проверенные точки поблизости через геосервисы и локальные подборки.'
+          },
+          {
+            title: 'Удержание постоянных покупателей',
+            desc: 'Важно переводить разовых посетителей в постоянных за счёт информирования о новинках, предзаказах и наборах.'
+          }
+        ]
+      },
+      agro_tourism: {
+        badge: 'Агроусадьбы и загородный отдых',
+        defaultFocus: 'leadgen',
+        understanding: 'Для загородного комплекса и агроусадьбы главная задача — равномерная загрузка не только в пиковые выходные, но и в будние дни, а также прямое привлечение гостей на семейный отдых и мероприятия без лишних комиссий агрегаторов.',
+        growthPoints: [
+          {
+            title: 'Сезонные и будничные простои',
+            desc: 'В выходные дни спрос высокий, тогда как будние дни и межсезонье требуют целенаправленного привлечения гостей и компаний.'
+          },
+          {
+            title: 'Потеря части обращений в мессенджерах',
+            desc: 'Гости хотят сразу видеть свободные даты, фото территории, условия проживания и быстро получать ответ в WhatsApp или Telegram.'
+          },
+          {
+            title: 'Зависимость от сарафанного радио',
+            desc: 'Для стабильного роста бронирований необходим управляемый поток новых гостей из поиска и рекламных систем.'
+          }
+        ]
+      },
+      edtech: {
+        badge: 'Онлайн-школы и образовательные проекты',
+        defaultFocus: 'leadgen',
+        understanding: 'Для образовательной компании ключевым показателем является стабильный набор новых учеников на курсы и программы при контролируемой стоимости привлечения и высокой доходимости до пробного занятия.',
+        growthPoints: [
+          {
+            title: 'Масштабирование набора новых учеников',
+            desc: 'При выгорании текущей аудитории требуется регулярный приток родителей и учеников из поисковых и рекламных каналов.'
+          },
+          {
+            title: 'Конверсия посадочной страницы курса',
+            desc: 'Родителям и ученикам важно сразу видеть программу, квалификацию преподавателей, результаты и понятный формат пробного урока.'
+          },
+          {
+            title: 'Своевременная работа с обращениями',
+            desc: 'Быстрая фиксация каждого контакта и автоматические напоминания напрямую влияют на процент записи в группы.'
+          }
+        ]
+      },
+      realestate: {
+        badge: 'Коммерческая недвижимость и аренда',
+        defaultFocus: 'leadgen',
+        understanding: 'При сдаче коммерческих, складских или офисных площадей каждый месяц простоя помещения означает прямую недополученную выручку, поэтому требуется быстрый выход на платёжеспособных арендаторов.',
+        growthPoints: [
+          {
+            title: 'Сокращение срока экспозиции свободных площадей',
+            desc: 'Ожидание звонков только с классифайдов затягивает заполнение объектов.'
+          },
+          {
+            title: 'Наглядная подача планировок и условий',
+            desc: 'Потенциальным арендаторам нужна страница с точными параметрами площадей, подъездных путей, коммуникаций и ставок.'
+          },
+          {
+            title: 'Прямой выход на компании-арендаторы',
+            desc: 'Точечная реклама по поисковым запросам позволяет привлекать компании, активно подбирающие локацию.'
+          }
+        ]
+      },
+      b2b_services: {
+        badge: 'Услуги для компаний и фулфилмент',
+        defaultFocus: 'site_launch',
+        understanding: 'В корпоративном сегменте заказчики выбирают подрядчика по чёткости условий, прозрачности прайса, соблюдению сроков и понятной схеме взаимодействия на каждом этапе.',
+        growthPoints: [
+          {
+            title: 'Упаковка услуги под запросы заказчиков',
+            desc: 'Потенциальному клиенту нужно за 1–2 минуты понять ваши тарифы, этапы работы и выгоду передачи задач на аутсорсинг.'
+          },
+          {
+            title: 'Стабильный поток прямых обращений',
+            desc: 'Сочетание посадочной страницы и поисковой рекламы приводит компании с уже сформированной потребностью.'
+          },
+          {
+            title: 'Системная обработка контактов',
+            desc: 'Фиксация всех этапов переговоров помогает доводить больше первичных расчётов до подписанного договора.'
+          }
+        ]
+      },
+      china_export: {
+        badge: 'Международное направление: рынок Китая (B2B)',
+        defaultFocus: 'china_b2b',
+        understanding: 'Выход на рынок Китая и работа с китайскими контрагентами требуют локализованной цифровой инфраструктуры, присутствия в китайской поисковой экосистеме и проверки партнёров через специализированные реестры.',
+        growthPoints: [
+          {
+            title: 'Невидимость стандартных сайтов в Китае',
+            desc: 'Привычные западные поисковики и мессенджеры ограничены в КНР — китайские закупщики ищут поставщиков через Baidu, Baidu Aicaigou и отраслевые каталоги.'
+          },
+          {
+            title: 'Верификация и поиск ЛПР',
+            desc: 'Для безопасного и результативного диалога требуется проверка компаний через Qichacha / Tianyancha и перевод коммуникации в WeChat.'
+          },
+          {
+            title: 'Адаптация материалов под китайских партнёров',
+            desc: 'Необходима локализованная посадочная страница на китайском языке с учётом отраслевой терминологии.'
+          }
+        ]
+      }
+    };
+
+    // БАЗА РЕШЕНИЙ FASTUP (этапы, результаты, ориентиры по стоимости)
+    const FOCUS_SOLUTIONS = {
+      leadgen: {
+        headline: 'Комплексное привлечение новых клиентов: посадочная страница + поисковая реклама',
+        description: 'Создаём конверсионную страницу под вашу специфику и запускаем целевую контекстную рекламу на аудиторию, которая уже ищет ваши товары или услуги.',
+        stages: [
+          { step: 'Этап 1. Аналитика и структура', detail: 'Изучаем спрос в вашем регионе, разбираем предложения конкурентов и формируем структуру страницы с акцентом на выгоды для заказчика.' },
+          { step: 'Этап 2. Разработка посадочной страницы', detail: 'Современный дизайн, адаптация под смартфоны и компьютеры, быстрые формы связи и интеграция с мессенджерами.' },
+          { step: 'Этап 3. Настройка рекламных кампаний', detail: 'Подбор целевых поисковых запросов, отсечение нецелевых переходов, настройка аналитики и запуск потока обращений.' }
+        ],
+        results: [
+          'Готовая современная площадка, которая достойно представляет компанию перед новыми заказчиками.',
+          'Стабильный поток целевых обращений от клиентов с актуальной потребностью.',
+          'Прозрачная статистика: сколько средств вложено в рекламу и сколько обращений получено.'
+        ],
+        defaultServiceCost: 'Индивидуальный расчёт (после согласования объёма страниц и кампаний)',
+        serviceCostNote: 'Включает аналитику ниши, разработку посадочной страницы, настройку рекламного кабинета и базовой веб-аналитики.',
+        defaultAdBudget: 'Рассчитывается отдельно под ваш регион и частотность спроса',
+        adBudgetNote: 'Рекламный бюджет не входит в стоимость работ агентства и направляется напрямую на показ объявлений целевым клиентам.',
+        defaultTimeline: '12–18 рабочих дней'
+      },
+      site_launch: {
+        headline: 'Разработка современного сайта / посадочной страницы под задачи продаж',
+        description: 'Проектируем и запускаем быстрый, адаптивный сайт, который наглядно раскрывает ваши преимущества, вызывает доверие у ЛПР и переводит посетителей в прямой диалог.',
+        stages: [
+          { step: 'Этап 1. Проектирование и смысловая упаковка', detail: 'Формируем понятную структуру блоков: продукция/услуги, условия работы, география, ответы на частые вопросы заказчиков.' },
+          { step: 'Этап 2. Дизайн и адаптивная вёрстка', detail: 'Чистый корпоративный стиль, корректное отображение на мобильных устройствах и высокая скорость загрузки.' },
+          { step: 'Этап 3. Подключение форм и аналитики', detail: 'Мгновенная отправка обращений в Telegram / WhatsApp / CRM и базовая поисковая оптимизация.' }
+        ],
+        results: [
+          'Полноценное интернет-присутствие компании, которое можно уверенно отправлять партнёрам и клиентам.',
+          'Рост конверсии из посетителя в прямое обращение за счёт продуманной структуры.',
+          'Готовая техническая база для подключения контекстной рекламы и SEO в любой момент.'
+        ],
+        defaultServiceCost: 'Предварительный расчёт по техническому заданию (как в реализованных проектах FastUp)',
+        serviceCostNote: 'Точная стоимость фиксируется в договоре после выбора структуры (одностраничный лендинг или многостраничный сайт).',
+        defaultAdBudget: 'Не требуется на этапе разработки (оплачивается только домен и хостинг)',
+        adBudgetNote: 'Рекламный бюджет подключается отдельно по вашему решению после запуска сайта.',
+        defaultTimeline: '10–15 рабочих дней'
+      },
+      ads_traffic: {
+        headline: 'Точечный запуск интернет-рекламы с предварительной оценкой рентабельности',
+        description: 'Настраиваем рекламные кампании строго на целевой сегмент или географическую точку, чтобы привлекать новых покупателей без переплаты за нецелевые показы.',
+        stages: [
+          { step: 'Этап 1. Медиаплан и оценка экономики', detail: 'Просчитываем объём аудитории в нужной локации или нише, оцениваем прогнозную стоимость перехода и целесообразность запуска.' },
+          { step: 'Этап 2. Подготовка объявлений и посадки', detail: 'Создаём понятные рекламные предложения и проверяем готовность площадки (сайта, карточки на картах или соцсетей) к приёму трафика.' },
+          { step: 'Этап 3. Запуск и оптимизация ставок', detail: 'Еженедельная чистка площадок, отключение неэффективных ключей и перераспределение бюджета в пользу работающих связок.' }
+        ],
+        results: [
+          'Чёткое понимание рентабельности рекламы для вашей конкретной точки или направления до крупных вложений.',
+          'Привлечение новых клиентов из выбранного района, города или целевого сегмента.',
+          'Регулярная отчётность по расходу рекламного бюджета и количеству обращений.'
+        ],
+        defaultServiceCost: 'Предварительный расчёт (ведение и настройка рекламных кампаний)',
+        serviceCostNote: 'Включает подготовку медиаплана, сбор семантики, создание объявлений, настройку аналитики и сопровождение.',
+        defaultAdBudget: 'Тестовый рекламный бюджет определяется отдельно после расчёта медиаплана',
+        adBudgetNote: 'Пополняется отдельно на баланс рекламной площадки. Мы рекомендуем начинать с выверенного тестового лимита.',
+        defaultTimeline: '5–7 рабочих дней до старта показов'
+      },
+      crm_ai: {
+        headline: 'Индивидуальная CRM-система, автоматизация процессов и внедрение ИИ (без сложного 1С)',
+        description: 'Переводим учёт из разрозненных таблиц в удобную систему, настроенную ровно под ваши операционные процессы — без лишних перегруженных модулей и принудительного перехода на 1С.',
+        stages: [
+          { step: 'Этап 1. Аудит текущих таблиц и маршрутов работы', detail: 'Разбираем, как сейчас фиксируются клиенты, заказы, рейсы и оплаты, чтобы сохранить привычную логику и убрать ручную рутину.' },
+          { step: 'Этап 2. Настройка индивидуальной CRM и автоматизации', detail: 'Единая база заказчиков, история звонков и мессенджеров, автоматическое формирование статусов, напоминаний и документов.' },
+          { step: 'Этап 3. Подключение ИИ-инструментов и обучение команды', detail: 'Автоматическая сводка по диалогам, быстрый поиск по базе и плавный переход сотрудников за несколько дней.' }
+        ],
+        results: [
+          'Уход от хаоса в таблицах без тяжёлого и дорогого внедрения 1С.',
+          'Ни один контакт и запрос клиента не теряется — вся история общения и сделок в одном окне.',
+          'Сокращение времени сотрудников на ручной перенос данных и полная прозрачность для руководителя.'
+        ],
+        defaultServiceCost: 'Индивидуальный расчёт после 20-минутного разбора ваших текущих таблиц',
+        serviceCostNote: 'Стоимость зависит от количества сотрудников, нужных интеграций (телефония, мессенджеры) и сценариев автоматизации.',
+        defaultAdBudget: 'Рекламный бюджет не требуется (оплачиваются только лицензии выбранных сервисов при необходимости)',
+        adBudgetNote: 'Подбираем архитектуру с минимальными ежемесячными расходами на инфраструктуру.',
+        defaultTimeline: '14–21 рабочий день (поэтапно без остановки работы компании)'
+      },
+      mp_external: {
+        headline: 'Привлечение внешнего рекламного трафика на магазин Ozon / Wildberries и развитие собственной витрины',
+        description: 'Направляем целевых покупателей из поисковых систем и внешних рекламных площадок напрямую в ваши товарные карточки на маркетплейсе, снижая зависимость от дорогой внутренней рекламы.',
+        stages: [
+          { step: 'Этап 1. Подбор локомотивных позиций и аналитика спроса', detail: 'Выбираем артикулы с лучшей маржинальностью и собираем внешние поисковые запросы розничных и мелкооптовых покупателей.' },
+          { step: 'Этап 2. Промежуточная витрина / диплинки и аналитика', detail: 'Настраиваем корректные ссылки и промежуточную страницу (при необходимости), чтобы отслеживать переходы и параллельно собирать базу прямых клиентов.' },
+          { step: 'Этап 3. Запуск внешнего трафика и замер заказов', detail: 'Ведём целевую аудиторию из поиска и рекламных сетей в ваш магазин на маркетплейсе и параллельно прорабатываем концепцию собственного сайта.' }
+        ],
+        results: [
+          'Дополнительный управляемый поток покупателей в ваш магазин на Ozon по более предсказуемой цене перехода.',
+          'Укрепление позиций карточек в органической выдаче маркетплейса за счёт внешних переходов и покупок.',
+          'Возможность параллельно развивать собственный сайт для прямых оптовых и постоянных клиентов без комиссии площадки.'
+        ],
+        defaultServiceCost: 'Предварительный расчёт (настройка внешнего трафика + опция разработки сайта)',
+        serviceCostNote: 'Можно начать с тестового пакета внешнего трафика на магазин Ozon, а разработку собственного сайта выделить во второй этап.',
+        defaultAdBudget: 'Тестовый бюджет на внешнюю рекламу выделяется отдельно',
+        adBudgetNote: 'Направляется напрямую в рекламные системы (Яндекс / ВК и др.) отдельно от стоимости работ FastUp.',
+        defaultTimeline: '7–10 рабочих дней на подготовку и запуск'
+      },
+      seo_growth: {
+        headline: 'Поисковое продвижение (SEO) и развитие органического присутствия компании',
+        description: 'Выводим сайт компании на видимые позиции в поисковых системах по целевым коммерческим запросам, чтобы привлекать клиентов на долгосрочной основе.',
+        stages: [
+          { step: 'Этап 1. Технический аудит и семантическое ядро', detail: 'Устраняем технические ошибки сайта и собираем полный перечень запросов, по которым ваши клиенты ищут продукцию или услуги.' },
+          { step: 'Этап 2. Оптимизация структуры и посадочных страниц', detail: 'Создаём и дорабатываем разделы под конкретные категории товаров, услуг и регионы работы.' },
+          { step: 'Этап 3. Рост видимости и конверсионная доработка', detail: 'Улучшаем коммерческие факторы доверия, чтобы растущий поисковый трафик переходил в реальные обращения.' }
+        ],
+        results: [
+          'Устойчивый рост видимости компании в поисковых системах без оплаты за каждый клик.',
+          'Укрепление репутации и доверия со стороны корпоративных заказчиков.',
+          'Снижение средней стоимости привлечения клиента на дистанции.'
+        ],
+        defaultServiceCost: 'Помесячный или поэтапный расчёт после экспресс-аудита сайта',
+        serviceCostNote: 'Формируется индивидуально после проверки текущего состояния сайта и конкурентности ниши.',
+        defaultAdBudget: 'Прямой рекламный бюджет за клики не обязателен',
+        adBudgetNote: 'При желании можно комбинировать SEO с контекстной рекламой для быстрого старта в первый месяц.',
+        defaultTimeline: 'Первые технические и структурные результаты — с 1-го месяца работы'
+      },
+      china_b2b: {
+        headline: 'Выход на рынок Китая: локализация, поиск B2B-партнёров и продвижение в китайской экосистеме',
+        description: 'Помогаем выстроить системный поиск и привлечение корпоративных партнёров в КНР с опорой на проверенные инструменты: Baidu, Baidu Aicaigou, отраслевые площадки, Qichacha/Tianyancha и WeChat.',
+        stages: [
+          { step: 'Этап 1. Аналитика спроса и верификация базы потенциальных партнёров', detail: 'Изучаем профильные каталоги и Baidu Aicaigou, проверяем регистрационные данные китайских компаний через Qichacha и Tianyancha.' },
+          { step: 'Этап 2. Локализованная посадочная страница и упаковка под КНР', detail: 'Готовим страницу и презентационные материалы на китайском языке с учётом технических требований загрузки и интеграции с WeChat.' },
+          { step: 'Этап 3. Поисковое продвижение в Baidu и квалификация контактов в CRM', detail: 'Настраиваем видимость и точечный выход на ЛПР, фиксируя все этапы переговоров в единой CRM-системе.' }
+        ],
+        results: [
+          'Проверенный список профильных китайских компаний и понятная карта спроса без смешивания фактов с неподтверждёнными гипотезами.',
+          'Адаптированная цифровая упаковка компании, доступная для партнёров внутри Китая.',
+          'Прозрачная воронка B2B-переговоров в WeChat и CRM.'
+        ],
+        defaultServiceCost: 'Индивидуальный поэтапный расчёт (аналитика и подбор / локализация / продвижение)',
+        serviceCostNote: 'Рекомендуем начинать с 1-го этапа (разведка спроса и верификация контактов), чтобы опираться на проверенные цифры.',
+        defaultAdBudget: 'Бюджет на площадки КНР (Baidu / каталоги) рассчитывается отдельно',
+        adBudgetNote: 'Зависит от выбранной модели входа и необходимости платного размещения в китайских каталогах.',
+        defaultTimeline: 'От 10–15 рабочих дней на первый аналитический и подготовительный этап'
+      }
+    };
+
+    // ПРЕСЕТЫ РЕАЛЬНЫХ ЛИДОВ ПАВЛА ИЗ ИСТОРИИ FASTUP
+    const LEAD_PRESETS = {
+      logterm: {
+        niche: 'logistics',
+        focus: 'crm_ai',
+        company: 'ЧП «МК ЛогТерм»',
+        contact: 'Екатерина',
+        city: 'Беларусь',
+        unp: 'B2B-грузоперевозки',
+        customContext: 'Сейчас операционные процессы и учёт ведутся в таблицах. Важно выстроить удобную индивидуальную CRM, автоматизацию рутины и подключение ИИ-инструментов под логику вашей компании без перехода на 1С.',
+        serviceCost: 'Предварительный расчёт после разбора структуры ваших текущих таблиц',
+        adBudget: 'Не требуется (фокус на внутренней автоматизации и CRM)',
+        timeline: '14–20 рабочих дней по этапам'
+      },
+      slonim: {
+        niche: 'marketplace',
+        focus: 'mp_external',
+        company: '«СЛОНИМПРЯЖА» (магазин «БелПряжа»)',
+        contact: 'Руководитель направления',
+        city: 'Слоним / РБ',
+        unp: 'Магазин «БелПряжа» на Ozon',
+        customContext: 'Собственное производство пряжи и действующий магазин «БелПряжа» на Ozon. Основной практический акцент — привлечение внешнего рекламного трафика в карточки на Ozon, а также оценка запуска собственного сайта для прямых заказов.',
+        serviceCost: 'Предварительный расчёт (пакет внешнего трафика на Ozon + концепция сайта)',
+        adBudget: 'Тестовый бюджет на внешнюю рекламу выделяется отдельно',
+        timeline: '7–10 рабочих дней до запуска трафика'
+      },
+      vilana: {
+        niche: 'local_retail',
+        focus: 'ads_traffic',
+        company: 'ЧП «Вилана Про»',
+        contact: 'Светлана',
+        city: 'Минск (Комаровский рынок)',
+        unp: 'УНП 193913964',
+        customContext: 'Продажа свежей выпечки на торговой точке на Комаровском рынке. Ключевая задача — предварительно оценить рентабельность и окупаемость рекламы специально для одной локальной точки и привлечь постоянных покупателей.',
+        serviceCost: 'Предварительный расчёт с тестовым медиапланом для одной точки',
+        adBudget: 'Локальный тестовый рекламный бюджет (рассчитывается отдельно)',
+        timeline: '5–7 рабочих дней'
+      },
+      agrokrot: {
+        niche: 'agro_tourism',
+        focus: 'leadgen',
+        company: 'Агроусадьба «АгроКрут»',
+        contact: 'Наталья',
+        city: 'Беларусь',
+        unp: 'Загородный отдых и мероприятия',
+        customContext: 'Основная задача — системное продвижение агроусадьбы в интернете, увеличение количества прямых бронирований и привлечение новых гостей как на выходные, так и в будние дни.',
+        serviceCost: 'Предварительный расчёт (упаковка страницы + настройка рекламы)',
+        adBudget: 'Рекламный бюджет на привлечение гостей рассчитывается отдельно по сезону',
+        timeline: '10–14 рабочих дней'
+      },
+      fizmatika: {
+        niche: 'edtech',
+        focus: 'leadgen',
+        company: 'ООО «Физматика»',
+        contact: 'Руководитель школы',
+        city: 'Беларусь',
+        unp: 'Онлайн-школа',
+        customContext: 'Фокус на увеличении количества новых учеников, наглядной упаковке образовательных программ и выстраивании прозрачной воронки записи на пробные занятия.',
+        serviceCost: 'Предварительный расчёт под приоритетные направления обучения',
+        adBudget: 'Рекламный бюджет выделяется отдельно под набор групп',
+        timeline: '10–15 рабочих дней'
+      },
+      furtex: {
+        niche: 'china_export',
+        focus: 'china_b2b',
+        company: '«Фуртекс Плюс»',
+        contact: 'Руководитель проекта',
+        city: 'Беларусь / КНР',
+        unp: 'Внешнеэкономическое направление',
+        customContext: 'Проработка возможностей выхода и работы на китайском рынке: разделяем подтверждённые вводные компании и пошаговую проверку B2B-партнёров через Baidu Aicaigou, отраслевые каталоги, Qichacha/Tianyancha и WeChat.',
+        serviceCost: 'Поэтапный расчёт (начиная с аналитического этапа и верификации партнёров)',
+        adBudget: 'Затраты на китайские площадки определяются отдельно после 1-го этапа',
+        timeline: '10–15 рабочих дней на 1-й аналитический этап'
+      }
+    };
+
+    // ТЕКУЩЕЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ
+    const appState = {
+      mode: 'builder', // 'builder' | 'client' | 'github'
+      niche: 'logistics',
+      focus: 'crm_ai',
+      company: 'ЧП «МК ЛогТерм»',
+      contact: 'Екатерина',
+      city: 'Беларусь',
+      unp: 'B2B-грузоперевозки',
+      customContext: 'Сейчас операционные процессы и учёт ведутся в таблицах. Важно выстроить удобную индивидуальную CRM, автоматизацию рутины и подключение ИИ-инструментов под логику вашей компании без перехода на 1С.',
+      serviceCost: 'Предварительный расчёт после разбора структуры ваших текущих таблиц',
+      adBudget: 'Не требуется (фокус на внутренней автоматизации и CRM)',
+      timeline: '14–20 рабочих дней по этапам'
+    };
+
+    function showToast(message) {
+      const box = document.getElementById('toastBox');
+      const text = document.getElementById('toastText');
+      if (!box || !text) return;
+      text.textContent = message;
+      box.classList.remove('hidden');
+      if (window._toastTimer) clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 2800);
+    }
+
+    function copyTextSafe(str, successMsg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(str).then(() => {
+          showToast(successMsg);
+        }).catch(() => {
+          fallbackCopy(str, successMsg);
+        });
+      } else {
+        fallbackCopy(str, successMsg);
+      }
+    }
+
+    function fallbackCopy(str, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = str;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (e) {
+        showToast('Не удалось скопировать автоматически');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // Инициализация из URL-параметров (именно так работает ссылка на GitHub Pages!)
+    function initFromUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('niche') && NICHE_TEMPLATES[params.get('niche')]) {
+        appState.niche = params.get('niche');
+      }
+      if (params.has('focus') && FOCUS_SOLUTIONS[params.get('focus')]) {
+        appState.focus = params.get('focus');
+      }
+      if (params.has('company')) appState.company = params.get('company');
+      if (params.has('contact')) appState.contact = params.get('contact');
+      if (params.has('city')) appState.city = params.get('city');
+      if (params.has('unp')) appState.unp = params.get('unp');
+      if (params.has('context')) appState.customContext = params.get('context');
+      if (params.has('cost')) appState.serviceCost = params.get('cost');
+      if (params.has('budget')) appState.adBudget = params.get('budget');
+      if (params.has('timeline')) appState.timeline = params.get('timeline');
+
+      if (params.get('view') === 'client') {
+        appState.mode = 'client';
+        // Если ссылка открыта клиентом с параметром ?view=client, скрываем верхнюю админ-панель для максимальной чистоты
+        const topBar = document.getElementById('topAdminBar');
+        if (topBar) topBar.classList.add('hidden');
+      }
+    }
+
+    function populateFormInputsFromState() {
+      document.getElementById('nicheSelect').value = appState.niche;
+      document.getElementById('focusSelect').value = appState.focus;
+      document.getElementById('companyInput').value = appState.company;
+      document.getElementById('contactInput').value = appState.contact;
+      document.getElementById('cityInput').value = appState.city;
+      document.getElementById('unpInput').value = appState.unp;
+      document.getElementById('customContextInput').value = appState.customContext;
+      document.getElementById('serviceCostInput').value = appState.serviceCost;
+      document.getElementById('adBudgetInput').value = appState.adBudget;
+      document.getElementById('timelineInput').value = appState.timeline;
+    }
+
+    function handleNicheOrFocusChange() {
+      const newNiche = document.getElementById('nicheSelect').value;
+      const prevNiche = appState.niche;
+      appState.niche = newNiche;
+
+      // Если сменилась ниша, подставляем рекомендуемый фокус для этой ниши и дефолтные финансовые формулировки
+      if (newNiche !== prevNiche && NICHE_TEMPLATES[newNiche]) {
+        const recommendedFocus = NICHE_TEMPLATES[newNiche].defaultFocus;
+        document.getElementById('focusSelect').value = recommendedFocus;
+      }
+
+      const selectedFocus = document.getElementById('focusSelect').value;
+      appState.focus = selectedFocus;
+
+      const focusData = FOCUS_SOLUTIONS[selectedFocus];
+      if (focusData) {
+        appState.serviceCost = focusData.defaultServiceCost;
+        appState.adBudget = focusData.defaultAdBudget;
+        appState.timeline = focusData.defaultTimeline;
+        document.getElementById('serviceCostInput').value = appState.serviceCost;
+        document.getElementById('adBudgetInput').value = appState.adBudget;
+        document.getElementById('timelineInput').value = appState.timeline;
+      }
+
+      syncFormToState();
+    }
+
+    function syncFormToState() {
+      appState.niche = document.getElementById('nicheSelect').value;
+      appState.focus = document.getElementById('focusSelect').value;
+      appState.company = document.getElementById('companyInput').value.trim();
+      appState.contact = document.getElementById('contactInput').value.trim();
+      appState.city = document.getElementById('cityInput').value.trim();
+      appState.unp = document.getElementById('unpInput').value.trim();
+      appState.customContext = document.getElementById('customContextInput').value.trim();
+      appState.serviceCost = document.getElementById('serviceCostInput').value.trim();
+      appState.adBudget = document.getElementById('adBudgetInput').value.trim();
+      appState.timeline = document.getElementById('timelineInput').value.trim();
+
+      renderProposal();
+    }
+
+    function loadLeadPreset(key) {
+      const preset = LEAD_PRESETS[key];
+      if (!preset) return;
+      appState.niche = preset.niche;
+      appState.focus = preset.focus;
+      appState.company = preset.company;
+      appState.contact = preset.contact;
+      appState.city = preset.city;
+      appState.unp = preset.unp;
+      appState.customContext = preset.customContext;
+      appState.serviceCost = preset.serviceCost;
+      appState.adBudget = preset.adBudget;
+      appState.timeline = preset.timeline;
+
+      populateFormInputsFromState();
+      renderProposal();
+      showToast('Загружен шаблон: ' + preset.company);
+    }
+
+    function resetToDefault() {
+      appState.niche = 'manufacturing';
+      appState.focus = 'leadgen';
+      appState.company = '';
+      appState.contact = '';
+      appState.city = 'Беларусь';
+      appState.unp = '';
+      appState.customContext = '';
+      const focusData = FOCUS_SOLUTIONS.leadgen;
+      appState.serviceCost = focusData.defaultServiceCost;
+      appState.adBudget = focusData.defaultAdBudget;
+      appState.timeline = focusData.defaultTimeline;
+
+      populateFormInputsFromState();
+      renderProposal();
+      showToast('Поля очищены для новой компании');
+    }
+
+    function buildClientQueryUrl() {
+      const baseUrl = window.location.origin && window.location.origin !== 'null'
+        ? window.location.origin + window.location.pathname
+        : 'https://username.github.io/fastup-kp/';
+      const params = new URLSearchParams();
+      params.set('view', 'client');
+      params.set('niche', appState.niche);
+      params.set('focus', appState.focus);
+      if (appState.company) params.set('company', appState.company);
+      if (appState.contact) params.set('contact', appState.contact);
+      if (appState.city) params.set('city', appState.city);
+      if (appState.unp) params.set('unp', appState.unp);
+      if (appState.customContext) params.set('context', appState.customContext);
+      if (appState.serviceCost) params.set('cost', appState.serviceCost);
+      if (appState.adBudget) params.set('budget', appState.adBudget);
+      if (appState.timeline) params.set('timeline', appState.timeline);
+      return baseUrl + '?' + params.toString();
+    }
+
+    function copyClientLink() {
+      const url = buildClientQueryUrl();
+      copyTextSafe(url, 'Персональная ссылка на КП скопирована!');
+    }
+
+    function copyCompanionMessage() {
+      const msgEl = document.getElementById('companionMsgPreview');
+      if (!msgEl) return;
+      copyTextSafe(msgEl.textContent, 'Текст сообщения для мессенджера скопирован!');
+    }
+
+    function switchMode(mode) {
+      appState.mode = mode;
+      const sidebar = document.getElementById('builderSidebar');
+      const proposal = document.getElementById('proposalContainer');
+      const githubSec = document.getElementById('githubGuideSection');
+
+      const btnBuilder = document.getElementById('tabBtnBuilder');
+      const btnClient = document.getElementById('tabBtnClient');
+      const btnGithub = document.getElementById('tabBtnGithub');
+
+      // Сброс стилей кнопок
+      [btnBuilder, btnClient, btnGithub].forEach(btn => {
+        if (!btn) return;
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition text-slate-300 hover:text-white';
+      });
+
+      if (mode === 'builder') {
+        if (btnBuilder) btnBuilder.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition bg-blue-600 text-white';
+        sidebar.classList.remove('hidden');
+        proposal.className = 'lg:col-span-7';
+        githubSec.classList.add('hidden');
+      } else if (mode === 'client') {
+        if (btnClient) btnClient.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition bg-blue-600 text-white';
+        sidebar.classList.add('hidden');
+        proposal.className = 'lg:col-span-12 max-w-4xl mx-auto w-full';
+        githubSec.classList.add('hidden');
+      } else if (mode === 'github') {
+        if (btnGithub) btnGithub.className = 'px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition bg-blue-600 text-white';
+        sidebar.classList.remove('hidden');
+        proposal.className = 'lg:col-span-7';
+        githubSec.classList.remove('hidden');
+      }
+    }
+
+    function renderProposal() {
+      const nicheData = NICHE_TEMPLATES[appState.niche] || NICHE_TEMPLATES.logistics;
+      const focusData = FOCUS_SOLUTIONS[appState.focus] || FOCUS_SOLUTIONS.leadgen;
+
+      // Бейдж и мета-строка
+      document.getElementById('kpBadgeNiche').textContent = nicheData.badge;
+      const metaParts = ['Подготовлено: Павел, FastUp'];
+      if (appState.city) metaParts.push(appState.city);
+      if (appState.unp) metaParts.push(appState.unp);
+      document.getElementById('kpMetaLine').textContent = metaParts.join(' • ');
+
+      // Приветствие и заголовок
+      const greetingStr = appState.contact
+        ? `${appState.contact}, здравствуйте!`
+        : 'Здравствуйте!';
+      document.getElementById('kpGreeting').textContent = greetingStr;
+
+      const companyTitlePart = appState.company
+        ? `для компании ${appState.company}`
+        : 'для вашей компании';
+      document.getElementById('kpMainTitle').textContent = `${focusData.headline} ${companyTitlePart}`;
+
+      // 2. Понимание деятельности
+      document.getElementById('kpUnderstandingText').textContent = nicheData.understanding;
+      const customBox = document.getElementById('kpCustomNoteBox');
+      const customText = document.getElementById('kpCustomNoteText');
+      if (appState.customContext) {
+        customBox.classList.remove('hidden');
+        customText.textContent = appState.customContext;
+      } else {
+        customBox.classList.add('hidden');
+      }
+
+      // 3. Точки роста
+      const growthGrid = document.getElementById('kpGrowthPointsGrid');
+      growthGrid.innerHTML = '';
+      nicheData.growthPoints.forEach((pt, idx) => {
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-xl bg-white border border-slate-200 flex flex-col justify-between';
+        card.innerHTML = `
+          <div>
+            <div class="text-xs font-bold text-blue-600 mb-1">Задача 0${idx + 1}</div>
+            <h3 class="font-bold text-slate-900 text-sm mb-1.5">${pt.title}</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">${pt.desc}</p>
+          </div>
+        `;
+        growthGrid.appendChild(card);
+      });
+
+      // 4. Решение FastUp
+      document.getElementById('kpSolutionHeadline').textContent = focusData.headline;
+      document.getElementById('kpSolutionDescription').textContent = focusData.description;
+
+      // 5. Этапы реализации
+      const stagesContainer = document.getElementById('kpStagesList');
+      stagesContainer.innerHTML = '';
+      focusData.stages.forEach((st) => {
+        const row = document.createElement('div');
+        row.className = 'p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2';
+        row.innerHTML = `
+          <div>
+            <div class="font-bold text-sm text-slate-900">${st.step}</div>
+            <div class="text-xs sm:text-sm text-slate-600 mt-0.5 leading-relaxed">${st.detail}</div>
+          </div>
+        `;
+        stagesContainer.appendChild(row);
+      });
+
+      // 6. Ожидаемые результаты
+      const resultsContainer = document.getElementById('kpExpectedResultsList');
+      resultsContainer.innerHTML = '';
+      focusData.results.forEach((res) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2.5';
+        li.innerHTML = `
+          <span class="mt-1 w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
+          <span>${res}</span>
+        `;
+        resultsContainer.appendChild(li);
+      });
+
+      // 7 и 8. Стоимость и рекламный бюджет
+      document.getElementById('kpServiceCostValue').textContent = appState.serviceCost || focusData.defaultServiceCost;
+      document.getElementById('kpServiceCostNote').textContent = focusData.serviceCostNote;
+      document.getElementById('kpAdBudgetValue').textContent = appState.adBudget || focusData.defaultAdBudget;
+      document.getElementById('kpAdBudgetNote').textContent = focusData.adBudgetNote;
+      document.getElementById('kpTimelineValue').textContent = appState.timeline || focusData.defaultTimeline;
+
+      // Обновление примера URL и сопроводительного сообщения
+      const clientUrl = buildClientQueryUrl();
+      const urlPreview = document.getElementById('sampleUrlPreview');
+      if (urlPreview) urlPreview.textContent = clientUrl;
+
+      const contactAppeal = appState.contact ? `${appState.contact}, добрый день!` : 'Добрый день!';
+      const companyMention = appState.company ? `для компании ${appState.company}` : 'для вашей компании';
+      const companionText = `${contactAppeal} Это Павел, агентство FastUp.\nКак договорились в разговоре, направляю персональное предложение ${companyMention} с этапами работы и структурой бюджета:\n${clientUrl}\n\nПодскажите, удобно ли будет завтра созвониться на 10–15 минут со специалистом, чтобы обсудить детали под ваши задачи?`;
+      const msgBox = document.getElementById('companionMsgPreview');
+      if (msgBox) msgBox.textContent = companionText;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFromUrlParams();
+      populateFormInputsFromState();
+      switchMode(appState.mode);
+      renderProposal();
+    });
+  </script>
+</body>
+</html>
